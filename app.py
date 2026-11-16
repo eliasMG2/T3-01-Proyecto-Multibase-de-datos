@@ -2,13 +2,13 @@
 from flask import Flask, jsonify
 from db import conectar_mysql, cliente_mongo, r
 
-from recursos.usuarios import usuarios_bp
-from recursos.sitios import sitios_bp
-from recursos.sesiones import sesiones_bp
-# Faltan los de Elias:
-# from recursos.paginas import paginas_bp
-# from recursos.objetivos import objetivos_bp
-# from recursos.eventos import eventos_bp
+# Los 6 recursos del proyecto
+from recursos.usuarios import usuarios_bp      # MySQL - Angel
+from recursos.sitios import sitios_bp          # MySQL - Angel
+from recursos.sesiones import sesiones_bp      # Redis - Angel
+from recursos.paginas import paginas_bp        # MySQL - Elias
+from recursos.objetivos import objetivos_bp    # MySQL - Elias
+from recursos.eventos import eventos_bp        # MongoDB - Elias
 
 app = Flask(__name__)
 app.json.ensure_ascii = False
@@ -16,24 +16,24 @@ app.json.ensure_ascii = False
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(sitios_bp)
 app.register_blueprint(sesiones_bp)
+app.register_blueprint(paginas_bp)
+app.register_blueprint(objetivos_bp)
+app.register_blueprint(eventos_bp)
 
 
 @app.get("/api/salud")
 def salud():
     estado = {}
     try:
-        conectar_mysql().close()
-        estado["mysql"] = "ok"
+        conectar_mysql().close(); estado["mysql"] = "ok"
     except Exception as e:
         estado["mysql"] = f"error: {e}"
     try:
-        cliente_mongo.admin.command("ping")
-        estado["mongodb"] = "ok"
+        cliente_mongo.admin.command("ping"); estado["mongodb"] = "ok"
     except Exception as e:
         estado["mongodb"] = f"error: {e}"
     try:
-        r.ping()
-        estado["redis"] = "ok"
+        r.ping(); estado["redis"] = "ok"
     except Exception as e:
         estado["redis"] = f"error: {e}"
     return jsonify(estado)

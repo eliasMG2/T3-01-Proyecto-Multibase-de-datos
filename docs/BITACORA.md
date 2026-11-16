@@ -97,3 +97,12 @@ Es el único requisito del profesor que exige una solución distinta en cada mot
 ## 7. Declaración de uso de IA
 
 Para este proyecto se utilizó Claude (Anthropic) como herramienta de guía: para proponer la arquitectura, para explicar cómo se implementa el borrado lógico en cada motor, y para generar el esqueleto del código a partir del cual cada integrante del equipo escribió sus recursos. Cada archivo entregado fue revisado, probado y, cuando fue necesario, modificado por los alumnos; los dos integrantes son responsables del contenido final.
+
+### Actualización — sábado 15, noche
+
+Para asegurar que Elías no empiece de cero y pueda avanzar rápido mañana:
+- Se añadieron los stubs (archivos pre-hechos a partir del molde `usuarios.py`) de sus tres recursos: `paginas.py`, `objetivos.py` y `eventos.py` (este último en MongoDB con la restricción de PATCH solo a `etiquetas` y `revisado`).
+- Se actualizó `app.py` registrando los 6 blueprints.
+- Se añadió `PARA-ELIAS.md` con instrucciones de cómo clonar, arrancar, probar sus recursos y hacer sus propios aportes (colección Postman, endpoint de estadísticas).
+
+Con esto, al final del sábado el proyecto ya tiene **los 6 recursos funcionales**. Elías debe probarlos, personalizarlos y añadir sus aportes propios en su rama `elias-recursos`.
