@@ -1,0 +1,26 @@
+# Levanta los 3 motores de base de datos del proyecto.
+# Usamos puertos distintos a los normales para no chocar con
+# los contenedores de mysql, mongodb y redis de las practicas pasadas.
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: analytics-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: analytics
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  mongo:
+    image: mongo:latest
+    container_name: analytics-mongo
+    ports:
+      - "27018:27017"
+
+  redis:
+    image: redis:latest
+    container_name: analytics-redis
+    ports:
+      - "6380:6379"
