@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mi Tienda Demo</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+  nav a { margin-right: 15px; text-decoration: none; color: #0066cc; }
+  button { padding: 10px 20px; margin: 10px 5px; font-size: 16px; cursor: pointer; }
+  .producto { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 6px; }
+  #log { background: #f4f4f4; padding: 10px; margin-top: 30px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: scroll; }
+</style>
+</head>
+<body>
+  <h1>Mi Tienda Demo</h1>
+  <nav>
+    <a href="index.html" data-ruta="/">Inicio</a>
+    <a href="productos.html" data-ruta="/productos">Productos</a>
+    <a href="contacto.html" data-ruta="/contacto">Contacto</a>
+  </nav>
+  <hr>
+
+  <h2>Bienvenido</h2>
+  <p>Esta es una pagina demo para probar el analytics. Haz clic en los botones y navega entre paginas: todo se registra en la API.</p>
+
+  <div class="producto">
+    <h3>Producto estrella</h3>
+    <button id="btn-comprar">Comprar ahora</button>
+    <button id="btn-detalles">Ver detalles</button>
+  </div>
+
+  <h3>Registro de eventos enviados (solo para ver en vivo)</h3>
+  <div id="log"></div>
+
+  <script src="tracker.js"></script>
+</body>
+</html>

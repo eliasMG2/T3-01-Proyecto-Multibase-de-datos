@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Productos - Mi Tienda Demo</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+  nav a { margin-right: 15px; text-decoration: none; color: #0066cc; }
+  button { padding: 10px 20px; margin: 10px 5px; font-size: 16px; cursor: pointer; }
+  .producto { border: 1px solid #ccc; padding: 15px; margin: 10px 0; border-radius: 6px; }
+  #log { background: #f4f4f4; padding: 10px; margin-top: 30px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: scroll; }
+</style>
+</head>
+<body>
+  <h1>Mi Tienda Demo - Productos</h1>
+  <nav>
+    <a href="index.html" data-ruta="/">Inicio</a>
+    <a href="productos.html" data-ruta="/productos">Productos</a>
+    <a href="contacto.html" data-ruta="/contacto">Contacto</a>
+  </nav>
+  <hr>
+  <div class="producto"><h3>Cafe molido 500g - $89.50</h3><button class="btn-prod">Agregar</button></div>
+  <div class="producto"><h3>Leche descremada 1L - $28.90</h3><button class="btn-prod">Agregar</button></div>
+  <div class="producto"><h3>Pan integral - $42.00</h3><button class="btn-prod">Agregar</button></div>
+  <h3>Eventos enviados:</h3>
+  <div id="log"></div>
+  <script src="tracker.js"></script>
+</body>
+</html>
