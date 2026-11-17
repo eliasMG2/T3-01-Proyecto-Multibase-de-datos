@@ -1,11 +1,11 @@
 # Manual de Laboratorio — Proyecto Multibase T3-01
 
-**Materia:** Tópicos de Bases de Datos (IFF-1026) · 2° Unidad
+**Materia:** Tópicos de Bases de Datos (IFF-1026) · 3° Unidad
 **Profesor:** Francisco Cervantes Zambrano · Instituto Tecnológico de Colima
 **Alumnos:** Ángel Salvador Álvarez Fernández (23460501) · Elías Meléndez Guzmán
-**Entrega:** martes 17 de noviembre de 2026, 23:59
+**Entrega:** martes 17 de noviembre de 2026
 
-Este documento explica **todo** el proyecto paso a paso: para qué sirve cada archivo, qué significa cada línea de código importante, qué comandos se usaron y por qué. Está escrito para que cualquiera de los dos del equipo pueda abrirlo, leerlo y defender el trabajo frente al profesor.
+Este documento explica **todo** el proyecto paso a paso: para qué sirve cada archivo, qué significa cada línea de código importante, qué comandos se usaron y por qué. Está escrito para que cualquiera del equipo pueda abrirlo, leerlo y defender el trabajo frente al profesor.
 
 ---
 
@@ -13,19 +13,19 @@ Este documento explica **todo** el proyecto paso a paso: para qué sirve cada ar
 
 ### 1. ¿Qué es un sistema multibase de datos?
 
-En clase (transcripción del 6 de noviembre) el profesor lo explicó así: *"Se refiere a aquellos sistemas que no solo utilizan una base de datos, sino que utilizan múltiples motores de base de datos para resolver problemas. Cada motor tiene un propósito distinto: unos pueden usarse como cachés, otros como almacenamiento permanente, otros para datos completos y otros para datos complejos"*.
+En clase (transcripción del 6 de noviembre) el profesor lo explicó así: *"Se refiere a aquellos sistemas que no solo utilizan una base de datos, sino que utilizan múltiples motores de base de datos para resolver problemas. Cada motor tiene un propósito distinto"*.
 
-La idea es que, en lugar de forzar a un solo motor a hacerlo todo, se usan **varios motores especializados** y cada uno hace lo que mejor sabe hacer. En nuestro proyecto:
+La idea es que, en lugar de forzar a un solo motor a hacerlo todo, se usan **varios motores especializados**:
 
-| Motor | Tipo | Qué hace mejor | Qué le toca |
-|---|---|---|---|
-| **MySQL** | Relacional (SQL) | Datos muy estructurados, relaciones, transacciones | Usuarios, sitios, páginas, objetivos |
-| **MongoDB** | NoSQL documental | Datos con forma variable, consultas flexibles | Eventos de visitantes |
-| **Redis** | Clave-valor en memoria | Lectura y escritura ultra rápidas, contadores, sesiones | Sesiones activas, contadores |
+- **MySQL** — relacional, bueno para datos estructurados, relaciones, transacciones.
+- **MongoDB** — NoSQL documental, bueno para datos con forma variable.
+- **Redis** — clave-valor en memoria, bueno para lecturas y escrituras ultra rápidas.
+
+En nuestro proyecto cada motor guarda lo que mejor sabe guardar.
 
 ### 2. ¿Qué es un Web Service?
 
-Es un programa que corre en un servidor y **responde por HTTP** (el mismo protocolo que usan las páginas web). En lugar de devolver HTML para que lo vea una persona, devuelve **datos en JSON** para que los use otro programa (una aplicación móvil, un panel web, otro servicio).
+Es un programa que corre en un servidor y **responde por HTTP**. En lugar de devolver HTML para una persona, devuelve **datos en JSON** para que los use otro programa o un panel visual.
 
 Nuestro Web Service es `app.py`. Se arranca con `python app.py` y queda escuchando en el puerto 5000. Se le hacen peticiones a URLs como `http://localhost:5000/api/usuarios` y responde con JSON.
 
@@ -33,404 +33,153 @@ Nuestro Web Service es `app.py`. Se arranca con `python app.py` y queda escuchan
 
 Son los **verbos HTTP**. Cada uno es una acción distinta sobre un recurso:
 
-| Verbo | Qué significa | Ejemplo |
-|---|---|---|
-| **GET** | Leer / consultar | Dame la lista de usuarios |
-| **POST** | Crear | Crea un nuevo usuario |
-| **PATCH** | Modificar parcialmente | Cambia solo el rol del usuario 1 |
-| **DELETE** | Borrar | Borra el usuario 1 |
+- **GET** — leer o consultar. Ejemplo: "dame la lista de usuarios".
+- **POST** — crear. Ejemplo: "crea un nuevo usuario con estos datos".
+- **PATCH** — modificar parcialmente. Ejemplo: "cambia solo el rol del usuario 1".
+- **DELETE** — borrar. Ejemplo: "borra el usuario 1".
 
-Juntos forman lo que se llama una **API REST**. El profesor pidió que **los 6 recursos** del proyecto tengan los 4 métodos, lo que da **6 × 4 = 24 endpoints** en total.
+Juntos forman una **API REST**. El profesor pidió que los 6 recursos tengan los 4 métodos, lo que da **6 × 4 = 24 endpoints** en total.
 
 ### 4. ¿Qué es un "recurso"?
 
-Cuando el compañero preguntó qué era un recurso, el profesor contestó (transcripción del 6 de noviembre): *"Si usted tiene usuarios, artículos, ventas, categorías, proveedores, sucursales, cada uno de esos es un recurso y cada uno va a tener su propio GET, POST, PATCH y DELETE"*.
+Cuando preguntaron qué era un recurso, el profesor contestó: *"Si usted tiene usuarios, artículos, ventas, categorías, proveedores, sucursales, cada uno de esos es un recurso y cada uno va a tener su propio GET, POST, PATCH y DELETE"*.
 
-Un recurso es básicamente **un tipo de cosa** que la aplicación maneja. En nuestro caso: usuarios, sitios, páginas, objetivos, eventos y sesiones son los seis recursos.
+Un recurso es básicamente **un tipo de cosa** que la aplicación maneja. En nuestro caso: usuarios, sitios, páginas, objetivos, eventos y sesiones.
 
 ### 5. ¿Qué es el "borrado lógico"?
 
 Cuando el profesor dijo *"el borrado de los registros deberá ser lógico, no se elimina el registro, sólo se marca como borrado"*, se refiere a esto:
 
-- **Borrado físico (lo normal):** El registro se elimina de la base. Se pierde para siempre.
-- **Borrado lógico (lo que pide):** El registro se queda en la base, pero se le añade una marca (una columna, un campo, una bandera) que dice "este está borrado". Las consultas normales lo ignoran, pero el dato sigue ahí por si hay que recuperarlo o auditarlo.
+- **Borrado físico (lo normal):** el registro se elimina de la base y se pierde para siempre.
+- **Borrado lógico (lo que pide):** el registro se queda en la base, pero se le añade una marca que dice "está borrado". Las consultas normales lo ignoran, pero el dato sigue ahí.
 
-Es como tachar un nombre en una lista con lápiz en vez de arrancar la hoja. Ventaja: nunca se pierde información y se puede saber quién borró qué y cuándo.
+Es como tachar un nombre con lápiz en vez de arrancar la hoja. Ventaja: nunca se pierde información y se puede auditar quién borró qué.
 
 ### 6. ¿Qué es Docker y por qué lo usamos?
 
-Docker es un programa que permite correr aplicaciones (como MySQL, MongoDB o Redis) **dentro de contenedores aislados**, sin tener que instalarlas directamente en la computadora. Cada contenedor es como una mini-computadora virtual con una sola aplicación corriendo dentro.
+Docker es un programa que permite correr aplicaciones (como MySQL, MongoDB o Redis) **dentro de contenedores aislados**, sin instalarlas directamente en la computadora. Cada contenedor es como una mini-computadora virtual con una sola aplicación.
 
-En nuestro proyecto, en vez de instalar MySQL, MongoDB y Redis en Windows (cada uno con su propio instalador, sus propios conflictos, sus propios puertos), levantamos los tres de un jalón con el archivo `docker-compose.yml`, y cuando terminemos los apagamos con un solo comando. Ya no quedan procesos sueltos en la computadora.
+En nuestro proyecto, en vez de instalar MySQL, MongoDB y Redis en Windows (cada uno con sus propios conflictos), levantamos los tres de un jalón con `docker-compose.yml`, y cuando terminamos los apagamos con un solo comando.
 
-El profesor ya lo usó en el tema 1 cuando montamos MySQL, MongoDB y Redis por separado en las prácticas pasadas.
+El profesor ya lo usó en el tema 1.
 
 ---
 
 ## Parte II — Arquitectura del proyecto
 
-```
-NAVEGADOR DEL VISITANTE                     TU COMPUTADORA
-┌──────────────────────┐                   ┌───────────────────────────┐
-│  sitio-prueba/       │   fetch (JSON)    │   Flask (app.py) :5000    │
-│  index.html          │ ────────────────> │   ├─ /api/usuarios        │
-│  productos.html      │                   │   ├─ /api/sitios          │
-│  contacto.html       │                   │   ├─ /api/paginas         │
-│  tracker.js          │                   │   ├─ /api/objetivos       │
-└──────────────────────┘                   │   ├─ /api/eventos         │
-                                           │   ├─ /api/sesiones        │
-                                           │   └─ /api/salud           │
-                                           └───┬──────────┬──────────┬─┘
-                                               │          │          │
-                                          ┌────▼──┐  ┌────▼───┐  ┌──▼────┐
-                                          │ MySQL │  │ Mongo  │  │ Redis │
-                                          │ :3307 │  │ :27018 │  │ :6380 │
-                                          └───────┘  └────────┘  └───────┘
-                                          Docker Compose (docker-compose.yml)
-```
+La aplicación tiene tres capas conectadas por HTTP y los tres motores viviendo en contenedores Docker.
 
-**Flujo típico (cuando un visitante entra a /productos):**
+- **Capa 1 — Cliente:** el navegador. Puede entrar al sitio de prueba (genera eventos) o al panel de analíticas (ve los resultados).
+- **Capa 2 — Web Service (Flask):** recibe peticiones HTTP, llama a los motores correspondientes y devuelve JSON o la vista HTML del panel.
+- **Capa 3 — Motores:** MySQL guarda lo administrativo; MongoDB guarda los eventos; Redis guarda las sesiones.
+
+Flujo típico cuando un visitante entra a `/productos` en el sitio de prueba:
 
 1. El navegador carga `productos.html` y con él el script `tracker.js`.
-2. `tracker.js` ve que no hay sesión abierta y hace `POST /api/sesiones` → Flask guarda la sesión en **Redis**.
-3. `tracker.js` dispara el evento "visita" y hace `POST /api/eventos` → Flask guarda el evento en **MongoDB**.
-4. Si el visitante da clic en un botón, `tracker.js` hace otro `POST /api/eventos` → otro documento en MongoDB.
-5. Cuando un administrador abre el panel y lista `/api/usuarios` → Flask consulta **MySQL**.
+2. `tracker.js` abre una sesión con `POST /api/sesiones` (se guarda en **Redis**).
+3. `tracker.js` dispara `POST /api/eventos` con el evento "visita" (se guarda en **MongoDB**).
+4. Si el visitante da clic, otro `POST /api/eventos` con el evento "clic".
+5. Al entrar a `/analiticas`, Flask consulta las 3 bases y arma el panel con las gráficas.
 
 ---
 
 ## Parte III — Archivo por archivo
 
-Esta sección explica qué hace cada archivo del proyecto y por qué está donde está.
+### A. `docker-compose.yml` — las 3 bases en contenedores
 
-```
-analytics-multibase/
-├── docker-compose.yml      ← Levanta las 3 bases
-├── schema.sql              ← Crea las 4 tablas de MySQL
-├── requirements.txt        ← Librerías de Python que se necesitan
-├── .gitignore              ← Qué archivos Git debe ignorar
-├── db.py                   ← Conexiones a los 3 motores
-├── app.py                  ← Arranca el Web Service (Flask)
-├── seed.py                 ← Mete datos de prueba
-├── README.md               ← Instrucciones para instalar
-├── PARA-ELIAS.md           ← Guía personal para el compañero
-├── recursos/               ← Aquí vive cada recurso por separado
-│   ├── usuarios.py         ← Recurso 1 (MySQL)
-│   ├── sitios.py           ← Recurso 2 (MySQL)
-│   ├── paginas.py          ← Recurso 3 (MySQL)
-│   ├── objetivos.py        ← Recurso 4 (MySQL)
-│   ├── eventos.py          ← Recurso 5 (MongoDB)
-│   └── sesiones.py         ← Recurso 6 (Redis)
-├── sitio-prueba/           ← El sitio falso que manda eventos
-│   ├── index.html
-│   ├── productos.html
-│   ├── contacto.html
-│   └── tracker.js          ← El "espía" que manda las visitas
-└── docs/
-    ├── BITACORA.md
-    └── MANUAL-LABORATORIO.md  (este archivo)
-```
+Define 3 servicios: `mysql`, `mongo` y `redis`, cada uno con su imagen oficial. Puntos clave:
 
-### A. `docker-compose.yml` — levantar las 3 bases
-
-```yaml
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: analytics-mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: analytics
-    ports:
-      - "3307:3306"
-    volumes:
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
-
-  mongo:
-    image: mongo:latest
-    container_name: analytics-mongo
-    ports:
-      - "27018:27017"
-
-  redis:
-    image: redis:latest
-    container_name: analytics-redis
-    ports:
-      - "6380:6379"
-```
-
-**Línea por línea:**
-
-- `services:` → cada apartado debajo es un contenedor distinto (una "aplicación").
-- `image: mysql:8.0` → qué imagen bajar de Docker Hub. Es como decir "quiero MySQL versión 8.0".
-- `container_name:` → el nombre que verás en Docker Desktop. Les puse "analytics-*" para distinguirlos de los contenedores de las prácticas anteriores.
-- `environment:` → variables de entorno. MySQL necesita saber la contraseña del usuario root y el nombre de la base inicial.
-- `ports: - "3307:3306"` → esto es clave. Significa "el puerto 3306 del contenedor (donde MySQL escucha por dentro) se asoma al puerto 3307 de mi computadora". **Usamos 3307 (y no 3306) a propósito** para no chocar con el contenedor de MySQL de la práctica T1-03 del clúster, que usa el 3306.
-- `volumes: - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql` → esto hace que MySQL, al arrancar por primera vez, ejecute automáticamente el archivo `schema.sql` y cree las tablas solas. No tenemos que entrar a MySQL a mano.
-
-Para arrancar los 3: `docker compose up -d` (la `-d` significa "detached", en segundo plano).
-Para apagarlos: `docker compose down`.
+- `container_name: analytics-...` → nombre que verás en Docker Desktop; les pusimos "analytics-*" para distinguirlos de contenedores de prácticas pasadas.
+- `ports: "3307:3306"` → el puerto 3306 del contenedor se asoma al 3307 de la computadora. **Usamos 3307, 27018 y 6380 (no los puertos normales)** para no chocar con los contenedores de MySQL, MongoDB y Redis que ya existen de prácticas anteriores.
+- `volumes: ./schema.sql:/docker-entrypoint-initdb.d/schema.sql` → hace que MySQL ejecute `schema.sql` al arrancar por primera vez y cree las tablas automáticamente.
 
 ### B. `schema.sql` — las 4 tablas de MySQL
 
-```sql
-CREATE DATABASE IF NOT EXISTS analytics;
-USE analytics;
+Crea la base `analytics` y 4 tablas: `usuarios`, `sitios`, `paginas` y `objetivos`.
 
-CREATE TABLE IF NOT EXISTS usuarios (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  nombre VARCHAR(100) NOT NULL,
-  email VARCHAR(150) NOT NULL,
-  rol VARCHAR(20) NOT NULL DEFAULT 'analista',
-  creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-  eliminado_en DATETIME NULL
-);
-```
-
-**Lo clave de este archivo:** cada tabla tiene una columna llamada **`eliminado_en`** de tipo `DATETIME NULL`. Mientras esa columna esté en `NULL`, el registro está vivo. Cuando le ponemos la fecha de hoy, queda **borrado lógicamente**.
-
-Esto es lo que resuelve el requisito del profesor para las 4 tablas de MySQL.
+Lo clave: cada tabla tiene una columna **`eliminado_en DATETIME NULL`**. Mientras esté en `NULL`, el registro está vivo. Cuando le ponemos la fecha, queda borrado lógicamente.
 
 ### C. `db.py` — las 3 conexiones
 
-```python
-import pymysql
-from pymongo import MongoClient
-import redis
+Define cómo Python se conecta a cada motor.
 
-def conectar_mysql():
-    return pymysql.connect(
-        host="localhost", port=3307,
-        user="root", password="root123",
-        database="analytics",
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True,
-        charset="utf8mb4",
-    )
-
-cliente_mongo = MongoClient("mongodb://localhost:27018", serverSelectionTimeoutMS=3000)
-mongo = cliente_mongo["analytics"]
-
-r = redis.Redis(host="localhost", port=6380, decode_responses=True)
-```
-
-**Línea por línea:**
-
-- `pymysql`, `pymongo`, `redis` → son las librerías de Python que se hablan con cada motor.
-- `conectar_mysql()` es una **función** (no una variable). ¿Por qué? Porque a MySQL se le debe pedir una conexión fresca cada vez que la vamos a usar, y cerrarla al terminar. Si dejáramos una sola conexión global abierta, se podría caer y no se recuperaría.
-- `cursorclass=pymysql.cursors.DictCursor` → hace que MySQL devuelva las filas como diccionarios de Python (`{"id": 1, "nombre": "..."}`) en vez de tuplas. Es mucho más cómodo para convertir a JSON.
-- `autocommit=True` → cada cambio se guarda al instante, sin tener que llamar a `commit()`. Menos código y menos errores.
-- `cliente_mongo` sí es una variable global porque MongoDB se puede usar sin problema con un solo cliente para toda la app.
-- `r = redis.Redis(..., decode_responses=True)` → el `decode_responses=True` hace que Redis devuelva texto (`"hola"`) en vez de bytes (`b"hola"`).
+- `conectar_mysql()` es una función que abre y regresa una conexión fresca. Usamos `DictCursor` para que los resultados vengan como diccionarios en vez de tuplas, y `autocommit=True` para no tener que llamar `commit()`.
+- `cliente_mongo = MongoClient(...)` es una variable global (MongoDB puede compartir un solo cliente para toda la app).
+- `r = redis.Redis(..., decode_responses=True)` para que Redis devuelva texto en vez de bytes.
 
 ### D. `app.py` — el Web Service
 
-```python
-from flask import Flask, jsonify
-from db import conectar_mysql, cliente_mongo, r
+Importa Flask, carga los 8 blueprints (6 recursos + estadisticas + analiticas), expone `/api/salud` y arranca el servidor en el puerto 5000. También incluye `GET /` que redirige al sitio de prueba.
 
-from recursos.usuarios import usuarios_bp
-from recursos.sitios import sitios_bp
-from recursos.sesiones import sesiones_bp
-from recursos.paginas import paginas_bp
-from recursos.objetivos import objetivos_bp
-from recursos.eventos import eventos_bp
-
-app = Flask(__name__)
-app.json.ensure_ascii = False
-
-app.register_blueprint(usuarios_bp)
-# ... los otros 5
-```
-
-**Conceptos:**
-
-- `Flask` es el framework que convierte Python en un servidor web. Es muy ligero: unas 15 líneas y ya tienes un servidor contestando peticiones.
-- Los **Blueprints** son como mini-apps que se enchufan al Flask principal. Cada recurso vive en su propio archivo con su propio Blueprint, y aquí los registramos todos. **Ventaja práctica:** mientras Ángel trabaja en `usuarios.py`, Elías puede estar trabajando en `eventos.py` sin tocar el mismo archivo. Se evitan conflictos al hacer merge en Git.
-- `app.json.ensure_ascii = False` → para que los acentos (á, é, í) se vean bien en el JSON y no como `á`.
-- El endpoint `/api/salud` es un **health check**: pregunta a las 3 bases "¿estás viva?" y regresa un JSON con el estado. Se usa para saber al instante si algo falló.
+Los **Blueprints** son mini-apps que se enchufan al Flask principal. Cada recurso vive en su propio archivo con su Blueprint. Ventaja práctica: Ángel y Elías pueden editar sus archivos sin tocar el mismo fichero y sin generar conflictos al hacer merge.
 
 ### E. `recursos/usuarios.py` — el molde CRUD
 
-Este es el archivo más importante de entender, porque los otros 3 recursos de MySQL (sitios, paginas, objetivos) son **copias de este** cambiando solo el nombre de la tabla y los campos.
+El archivo más importante de entender, porque los otros 3 recursos de MySQL (sitios, paginas, objetivos) son copias de este con el nombre de la tabla cambiado.
 
-**GET lista:**
-```python
-@usuarios_bp.get("/api/usuarios")
-def listar_usuarios():
-    con = conectar_mysql()
-    with con.cursor() as cur:
-        cur.execute("SELECT * FROM usuarios WHERE eliminado_en IS NULL")
-        datos = cur.fetchall()
-    con.close()
-    return jsonify(datos)
-```
-- El decorador `@usuarios_bp.get(...)` registra la función para que responda a peticiones GET en esa URL.
-- `WHERE eliminado_en IS NULL` → esta es la clave del borrado lógico en MySQL: **nunca devolvemos los que están marcados como borrados.**
-- `jsonify` convierte la lista de diccionarios en JSON.
+**GET lista:** `SELECT * FROM usuarios WHERE eliminado_en IS NULL`. El filtro ignora los borrados.
 
-**POST (crear):**
-```python
-@usuarios_bp.post("/api/usuarios")
-def crear_usuario():
-    datos = request.get_json()
-    if not datos or not datos.get("nombre") or not datos.get("email"):
-        return jsonify({"error": "nombre y email son obligatorios"}), 400
-    con = conectar_mysql()
-    with con.cursor() as cur:
-        cur.execute(
-            "INSERT INTO usuarios (nombre, email, rol) VALUES (%s, %s, %s)",
-            (datos["nombre"], datos["email"], datos.get("rol", "analista")),
-        )
-        nuevo_id = cur.lastrowid
-    con.close()
-    return jsonify({"mensaje": "Usuario creado", "id": nuevo_id}), 201
-```
-- `request.get_json()` lee el cuerpo de la petición (el JSON que mandó el cliente).
-- Validación básica: si falta nombre o email, regresa `400 Bad Request`.
-- Uso de **parámetros** `%s` en lugar de concatenar texto. Esto evita **inyección SQL**, que es un ataque donde alguien mete código malicioso en los datos. **Nunca se concatenan datos del usuario directamente en una consulta SQL.**
-- `cur.lastrowid` → el id autogenerado por MySQL.
-- `201` es el código HTTP para "Creado correctamente".
+**POST:** valida que el body traiga nombre y email, hace `INSERT` con parámetros `%s` (nunca concatenamos strings, para evitar inyección SQL).
 
-**PATCH (modificar parcial):**
-```python
-@usuarios_bp.patch("/api/usuarios/<int:id>")
-def editar_usuario(id):
-    datos = request.get_json() or {}
-    cambios = {k: v for k, v in datos.items() if k in CAMPOS_EDITABLES}
-    if not cambios:
-        return jsonify({"error": "No hay campos validos para modificar"}), 400
-    partes = ", ".join(f"{campo} = %s" for campo in cambios)
-    valores = list(cambios.values()) + [id]
-    con = conectar_mysql()
-    with con.cursor() as cur:
-        filas = cur.execute(
-            f"UPDATE usuarios SET {partes} WHERE id = %s AND eliminado_en IS NULL", valores
-        )
-    con.close()
-    if filas == 0:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-    return jsonify({"mensaje": "Usuario actualizado"})
-```
-- `<int:id>` en la ruta → captura un número de la URL. Si el cliente pide `/api/usuarios/5`, el `id` vale 5.
-- La lista `CAMPOS_EDITABLES` es una **lista blanca**: solo los campos que están ahí se pueden modificar. Si alguien manda `{"rol":"admin", "id":999, "creado_en":"ayer"}`, solo se aplica `rol`. Protege la integridad de los datos.
-- Se arma el UPDATE dinámicamente para modificar solo los campos que el cliente envió.
-- El filtro `AND eliminado_en IS NULL` evita que se puedan modificar registros borrados.
+**PATCH:** solo acepta los campos listados en `CAMPOS_EDITABLES` (lista blanca). Arma el UPDATE dinámicamente con los campos que mandó el cliente.
 
-**DELETE (borrado lógico):**
-```python
-@usuarios_bp.delete("/api/usuarios/<int:id>")
-def borrar_usuario(id):
-    con = conectar_mysql()
-    with con.cursor() as cur:
-        filas = cur.execute(
-            "UPDATE usuarios SET eliminado_en = NOW() WHERE id = %s AND eliminado_en IS NULL", (id,)
-        )
-    con.close()
-    if filas == 0:
-        return jsonify({"error": "Usuario no encontrado"}), 404
-    return jsonify({"mensaje": "Usuario marcado como borrado"})
-```
-- **Fíjate bien: esto NO es un `DELETE FROM`, es un `UPDATE ... SET eliminado_en = NOW()`.** Ese es exactamente el requisito del profesor. El registro se queda, solo se marca.
-- Si lo borramos otra vez, `filas == 0` y respondemos 404, porque el filtro `AND eliminado_en IS NULL` ya no lo encuentra.
+**DELETE:** NO es un `DELETE FROM`. Es un `UPDATE usuarios SET eliminado_en = NOW()`. Ese es exactamente el borrado lógico que pide el profesor.
 
-### F. `recursos/eventos.py` — el recurso más diferente (MongoDB)
+### F. `recursos/eventos.py` — MongoDB
 
 MongoDB no usa SQL ni cursores. Usa métodos como `insert_one`, `find`, `update_one`.
 
-```python
-@eventos_bp.post("/api/eventos")
-def crear_evento():
-    datos = request.get_json() or {}
-    if not datos.get("tipo") or not datos.get("sitio_id"):
-        return jsonify({"error": "tipo y sitio_id son obligatorios"}), 400
-    datos["fecha"] = datetime.utcnow()
-    datos["eliminado"] = False
-    datos.setdefault("etiquetas", [])
-    datos.setdefault("revisado", False)
-    resultado = col.insert_one(datos)
-    return jsonify({"mensaje": "Evento registrado", "id": str(resultado.inserted_id)}), 201
-```
-- `col.insert_one(datos)` guarda el documento tal cual. **Fíjate que MongoDB no requiere que todos los documentos tengan los mismos campos.** Un evento tipo "visita" lleva `ruta`, uno tipo "clic" lleva `selector` y `texto`, uno tipo "scroll" lleva `porcentaje`. **Esa flexibilidad es justamente la razón por la que los eventos viven en MongoDB y no en MySQL** (si estuvieran en MySQL habría que crear una tabla con columnas para cada posibilidad, llenas de nulos).
-- `resultado.inserted_id` es un `ObjectId` (identificador único que MongoDB asigna). Como no es texto normal, lo convertimos con `str(...)` para que se pueda mandar en JSON.
-- `datos["eliminado"] = False` → igual que en MySQL, cada documento lleva su marca de borrado lógico.
+Cada evento es un documento JSON. **MongoDB permite que los documentos tengan campos distintos** (un evento "visita" lleva `ruta`, uno "clic" lleva `selector` y `texto`), y esa flexibilidad es la razón por la que los eventos viven en MongoDB y no en MySQL.
 
-**Regla especial del PATCH:**
-```python
-CAMPOS_EDITABLES = ["etiquetas", "revisado"]
-```
-A diferencia de un usuario (donde se puede cambiar el nombre, rol, etc.), un **evento es un hecho ocurrido**: la visita pasó, el clic pasó. No tiene sentido "editarlo". Solo permitimos **etiquetarlo** (clasificarlo) o **marcarlo como revisado**. Esto es una decisión de diseño que vale la pena explicar al profesor si pregunta.
+**Regla especial del PATCH:** solo deja cambiar `etiquetas` y `revisado`. Un evento es un hecho ocurrido: no se puede "corregir" que alguien visitó la página, solo clasificarlo o marcarlo como revisado.
 
-**DELETE en Mongo:**
-```python
-r = col.update_one(
-    {"_id": ObjectId(id), "eliminado": {"$ne": True}},
-    {"$set": {"eliminado": True, "eliminado_en": datetime.utcnow()}}
-)
-```
-- `$set` modifica solo los campos especificados.
-- `$ne: True` significa "donde `eliminado` no sea True" (es decir, los no borrados).
-- Borrado lógico cumplido también aquí.
+**DELETE:** `update_one` con `$set: {eliminado: true}`. Nunca `delete_one`.
 
-### G. `recursos/sesiones.py` — el recurso más delicado (Redis)
+### G. `recursos/sesiones.py` — Redis
 
-Redis no tiene tablas. Guarda datos en estructuras simples: strings, listas, hashes, sorted sets.
+Una sesión vive como un HASH con clave `sesion:{id}`. Además se mete al sorted set `sitio:{id}:activas` para poder contar las sesiones activas con una sola consulta.
 
-Una sesión vive como un **HASH** (algo parecido a un diccionario) con clave `sesion:{id}`:
-```python
-r.hset(f"sesion:{sesion_id}", mapping={
-    "id": sesion_id,
-    "sitio_id": datos["sitio_id"],
-    "visitante_id": datos["visitante_id"],
-    "inicio": ahora,
-    "ultima_actividad": ahora,
-    "paginas_vistas": 1,
-    "estado": "activa",
-    "eliminado": 0,
-})
-r.zadd(f"sitio:{datos['sitio_id']}:activas", {sesion_id: ahora})
-```
+**IMPORTANTE — el borrado lógico en Redis es el más delicado:** NO usamos `DEL`, solo cambiamos el campo `eliminado` del hash a 1. Y **no le ponemos TTL (EXPIRE)**: si lo hiciéramos, Redis borraría físicamente la sesión cuando caducara y rompería el requisito del profesor.
 
-Y además se mete al **sorted set** `sitio:{id}:activas`, donde el score es el timestamp de la última actividad. Esto permite, con una sola consulta `ZCOUNT`, saber cuántas sesiones están activas ahora mismo (las que tienen actividad en los últimos 5 minutos).
+### H. `recursos/estadisticas.py` — endpoint que une las 3 bases
 
-**IMPORTANTE — el borrado lógico en Redis es el más delicado:**
+`GET /api/estadisticas/<sitio_id>` responde con un JSON como:
 
-```python
-r.hset(f"sesion:{id}", mapping={
-    "eliminado": 1,
-    "estado": "cerrada",
-    "eliminado_en": time.time(),
-})
-r.zrem(f"sitio:{datos['sitio_id']}:activas", id)
-```
-
-Fíjate que **NO usamos `DEL`** (que sería el borrado físico en Redis). Solo cambiamos el campo `eliminado` del hash a 1 y lo sacamos del sorted set de activas.
-
-**Y más importante aún: no le ponemos `EXPIRE` (TTL)** al hash. Si lo hiciéramos, Redis borraría físicamente la sesión cuando caducara el TTL, y romperíamos la regla del borrado lógico. En Redis, para cumplir el requisito del profesor, hay que renunciar a la expiración automática y manejar la "cierre" de sesiones con un campo propio.
-
-### H. `sitio-prueba/tracker.js` — el "espía"
-
-Este archivo es un pequeño script de JavaScript que se mete en cada página HTML (`index.html`, `productos.html`, `contacto.html`) y hace tres cosas:
-
-1. **Al cargar la página**, abre una sesión si no hay una abierta (`POST /api/sesiones`) y manda el evento "visita" (`POST /api/eventos`).
-2. **Cada vez que se da clic en un botón o un link**, manda un evento "clic".
-3. **Cada vez que algo pasa**, actualiza la sesión (`PATCH /api/sesiones/<id>`) para renovar su `ultima_actividad`.
-
-```javascript
-let visitanteId = localStorage.getItem("visitante_id");
-if (!visitanteId) {
-  visitanteId = "v-" + Math.random().toString(36).slice(2, 10);
-  localStorage.setItem("visitante_id", visitanteId);
+```json
+{
+  "sitio_id": 1,
+  "sitio_nombre": "Mi Tienda",
+  "total_eventos": 42,
+  "sesiones_activas": 3
 }
 ```
-- `localStorage` sobrevive al cierre del navegador: el visitante queda identificado con el mismo UUID aleatorio aunque regrese días después.
-- `sessionStorage` solo dura mientras la pestaña esté abierta: por eso lo usamos para la sesión (que debe cerrarse si cierran la pestaña).
 
-**Por diseño nunca guardamos IP, nombre o correo del visitante.** Solo un UUID aleatorio generado en su navegador. Esto respeta el principio de no recopilar datos personales innecesarios.
+Consulta MySQL (nombre del sitio), MongoDB (total de eventos no borrados) y Redis (sesiones activas en el sorted set) **en el mismo endpoint**.
+
+### I. `recursos/analiticas.py` y `templates/analiticas.html` — el panel visual
+
+El endpoint `/analiticas` renderiza una página HTML con filtro por sitio y las siguientes secciones:
+
+- Tarjetas con los totales (Visitas, Clics, Sesiones).
+- Gráfica de actividad diaria de los últimos 7 días.
+- Lista de páginas más visitadas.
+- Bitácora con los últimos eventos registrados en cada motor.
+
+La consulta a MongoDB usa una sola agregación con `$facet` para traer en una pasada: totales por tipo, actividad por día, top páginas y eventos recientes. Es mucho más eficiente que hacer 4 consultas separadas.
+
+### J. `sitio-prueba/tracker.js` — el espía
+
+Un pequeño script de JavaScript que se mete en cada página HTML del sitio de prueba. Hace tres cosas:
+
+1. **Al cargar la página:** abre una sesión (si no existe) y manda el evento "visita".
+2. **Al hacer clic en un botón o link:** manda un evento "clic".
+3. **Cada vez que hay actividad:** actualiza la sesión (PATCH) para renovar `ultima_actividad`.
+
+Usamos `localStorage` para el `visitante_id` (persiste entre sesiones del navegador) y `sessionStorage` para el `sesion_id` (dura mientras la pestaña esté abierta). **No guardamos IP, nombre ni correo del visitante** — solo un UUID aleatorio generado en su navegador, respetando el principio de no recopilar datos personales innecesarios.
 
 ---
 
-## Parte IV — Manual de operación (comandos)
+## Parte IV — Manual de operación
 
 ### Primera vez (instalación)
 
@@ -438,136 +187,103 @@ if (!visitanteId) {
 # 1. Levantar las 3 bases en Docker
 docker compose up -d
 
-# 2. Instalar las librerías de Python que usa el proyecto
+# 2. Instalar librerías
 pip install -r requirements.txt
 
 # 3. Arrancar el Web Service
 python app.py
 ```
 
-Abrir el navegador en `http://localhost:5000/api/salud` → las 3 bases deben decir "ok".
+Abrir en el navegador:
 
-### Uso diario
+- `http://localhost:5000/api/salud` → debe decir las 3 bases en "ok".
+- `http://localhost:5000/` → se abre el sitio de prueba (tienda demo).
+- `http://localhost:5000/analiticas` → se abre el panel visual.
 
-Para arrancar el proyecto después del primer día:
+### Verificar con el test suite
+
+Con Flask corriendo, en otra terminal:
+
 ```powershell
-docker compose up -d
-python app.py
+python tests/test_todos_los_endpoints.py
 ```
 
-Para apagar (al final del día):
-- Ctrl+C en la terminal donde está Flask
-- `docker compose down` para apagar los contenedores (los datos se mantienen; para borrar todo usa `docker compose down -v`)
+Debe terminar con `RESULTADO: 39 OK · 0 FAIL`.
 
-### Si `python app.py` da `ModuleNotFoundError: No module named 'flask'`
+### Cargar datos de prueba
 
-Pasa cuando estás dentro del venv (`(venv)` en el prompt) pero las librerías están instaladas en el Python general. Dos opciones:
-
-1. **Instalar en el venv:** con el venv activado:
-   ```powershell
-   pip install -r requirements.txt
-   ```
-2. **O salir del venv:** `deactivate`, y ya corre `python app.py`.
-
-### Cómo probar un POST en PowerShell
-
-PowerShell tiene un `curl` viejo que no entiende `-H`. Hay 2 formas de evitarlo:
-
-**Opción 1 — Usa `curl.exe` (el curl real de Windows 10+):**
 ```powershell
-curl.exe -X POST http://localhost:5000/api/usuarios -H "Content-Type: application/json" -d "{\"nombre\":\"Ana\",\"email\":\"ana@x.com\"}"
+python seed.py
 ```
 
-**Opción 2 — Script de Python de una línea (lo que usaste tú):**
-```powershell
-python -c "import urllib.request,json; r=urllib.request.urlopen(urllib.request.Request('http://localhost:5000/api/paginas',data=json.dumps({'sitio_id':1,'ruta':'/productos','titulo':'Productos'}).encode(),headers={'Content-Type':'application/json'},method='POST')); print(r.read().decode())"
-```
+Mete un usuario y un sitio de ejemplo para poder probar los demás endpoints.
 
-**Opción 3 (la más cómoda) — Postman:** descargas Postman, creas una colección y haces las pruebas con clics.
+### Detener
+
+- `Ctrl+C` en la terminal de Flask.
+- `docker compose down` para apagar los contenedores (los datos se conservan hasta `docker compose down -v`).
+
+### Soluciones a errores comunes
+
+- **`ModuleNotFoundError: No module named 'flask'`** → estás dentro del venv pero sin librerías. Con el venv activado: `pip install -r requirements.txt`.
+- **`WinError 10061` o "connection refused"** → Docker Desktop no está encendido o los contenedores están apagados. Abre Docker Desktop y espera a que diga "Engine running"; luego `docker compose up -d`.
+- **404 al entrar a `http://localhost:5000/`** → esto solo pasa si no hiciste `git pull` para traer el redirect. Después del pull, `/` redirige al sitio de prueba automáticamente.
+- **`curl` falla en PowerShell** → PowerShell tiene un alias viejo de curl. Usa `curl.exe` con el `.exe` explícito, o usa el `seed.py` / un script de Python.
 
 ---
 
-## Parte V — Flujo de trabajo en Git
+## Parte V — Flujo de Git
 
-### Comandos usados en el día 1 (sábado 15)
+Cada quien trabaja en su rama y sube con su propia cuenta de GitHub para que los commits aparezcan a su nombre. Comandos usados:
 
 ```powershell
-# Primera vez (crear el repo local y conectarlo al remoto)
-git init
-git add .
-git commit -m "Esqueleto del proyecto y recursos de Angel"
-git branch -M main
-git remote add origin https://github.com/eliasMG2/T3-01-Proyecto-Multibase-de-datos.git
-git push -u origin main
+git init                          # crea el repo local
+git add .                         # marca los archivos a commit
+git commit -m "mensaje"           # guarda la foto del momento
+git branch -M main                # usa main como rama por defecto
+git remote add origin <url>       # conecta con GitHub
+git push -u origin main           # sube la rama
 
-# Siguientes commits
-git add .
-git commit -m "Sitio de prueba, bitacora y seed"
-git push
+git pull --rebase                 # trae lo del compañero sin crear "merge commits"
+git tag -a v1.0-entrega -m "..."  # crea un tag
+git push origin v1.0-entrega      # sube el tag
 ```
 
-**Qué significa cada comando:**
+Reparto por autor:
 
-- `git init` → crea el repositorio local (una carpeta oculta `.git`).
-- `git add .` → marca todos los archivos para el próximo commit.
-- `git commit -m "mensaje"` → guarda la foto del momento con una etiqueta.
-- `git branch -M main` → renombra la rama por defecto de `master` a `main` (convención actual).
-- `git remote add origin ...` → conecta el repo local con el repo en GitHub.
-- `git push -u origin main` → sube la rama main al remoto.
-
-### Reparto por autor
-
-| Archivo / sección | Autor |
-|---|---|
-| `docker-compose.yml`, `schema.sql`, `db.py`, `app.py` | Ángel |
-| `recursos/usuarios.py`, `recursos/sitios.py`, `recursos/sesiones.py` | Ángel |
-| `sitio-prueba/*`, `seed.py`, `README.md`, `docs/*` | Ángel |
-| `recursos/paginas.py`, `recursos/objetivos.py`, `recursos/eventos.py` | Elías (los retoma y los hace suyos) |
-| Colección de Postman, endpoint de estadísticas | Elías |
-
-Cada quien trabaja en su **rama propia** (`elias-recursos` en el caso de Elías) y abre un Pull Request hacia `main`. Así en la vista de "Contributors" de GitHub se ven los dos nombres con sus commits.
+- **Ángel (4 commits + aportes):** `docker-compose.yml`, `schema.sql`, `db.py`, `app.py`, recursos `usuarios/sitios/sesiones`, sitio de prueba, suite de pruebas, endpoint `estadisticas`, bitácora y manual.
+- **Elías (3 commits incluyendo un Pull Request):** recursos `paginas/objetivos/eventos`, panel `/analiticas`, corrección de autenticación MySQL, redirect de `/`.
 
 ---
 
 ## Parte VI — Lo que podría preguntar el profe
 
-El profesor dijo en clase: *"si veo que es código muy avanzado y estructurado, ya sabré que no lo hicieron ustedes"*. Por eso **todo el código está escrito de la forma más sencilla posible**: sin ORM, sin clases raras, con consultas SQL a la vista, con nombres en español, con comentarios explicando el por qué. Si el profe pregunta cualquier cosa de abajo, la respuesta debe estar en el código mismo:
-
-| Pregunta posible | Dónde está la respuesta |
+| Pregunta | Dónde está la respuesta |
 |---|---|
 | ¿Dónde está el borrado lógico en MySQL? | Columna `eliminado_en`, filtro `WHERE eliminado_en IS NULL` en cada GET, `UPDATE ... SET eliminado_en = NOW()` en cada DELETE. |
-| ¿Dónde está el borrado lógico en MongoDB? | Campo `eliminado: false` en cada documento, filtro `{eliminado: {$ne: true}}`, `$set` en el DELETE. |
-| ¿Dónde está el borrado lógico en Redis? | Campo `eliminado = 0` en el hash. `DELETE` lo pone en 1. **No usamos EXPIRE porque borraría físicamente.** |
-| ¿Por qué usaron puertos 3307, 27018, 6380? | Para no chocar con los contenedores de MySQL, MongoDB y Redis que ya existen de las prácticas anteriores. |
-| ¿Por qué un archivo por recurso? | Para que los dos del equipo podamos trabajar en paralelo sin tocar el mismo archivo y sin generar conflictos al hacer merge. |
-| ¿Por qué eventos en MongoDB y no en MySQL? | Porque cada evento tiene campos distintos según su tipo (visita, clic, scroll). En MySQL habría que crear una tabla con columnas llenas de nulos. |
-| ¿Por qué el PATCH de eventos solo deja editar `etiquetas` y `revisado`? | Porque un evento es un hecho ocurrido: no se puede "corregir" que alguien visitó la página. Solo se puede clasificar o marcar como revisado. |
-| ¿Por qué no usaron un ORM? | Para que el código sea legible y nosotros podamos explicar cada consulta. Un ORM esconde lo que pasa por debajo. |
-| ¿Qué pasa si una base se cae? | El endpoint `/api/salud` lo detecta de inmediato. Si cae MongoDB, los endpoints de `/api/eventos` dan error 500; los demás siguen funcionando. |
+| ¿Dónde está el borrado lógico en MongoDB? | Campo `eliminado`. Filtro `{eliminado: {$ne: true}}`. `$set` en el DELETE. |
+| ¿Dónde está el borrado lógico en Redis? | Campo `eliminado = 0` en el hash. **No usamos EXPIRE/TTL** porque borraría físicamente. |
+| ¿Por qué usaron puertos 3307, 27018, 6380? | Para no chocar con los contenedores de prácticas anteriores. |
+| ¿Por qué un archivo por recurso? | Para que los dos del equipo trabajemos en paralelo sin conflictos. |
+| ¿Por qué eventos en MongoDB y no en MySQL? | Porque cada evento tiene campos distintos según su tipo. |
+| ¿Por qué el PATCH de eventos solo deja editar `etiquetas` y `revisado`? | Porque un evento es un hecho ocurrido: no se puede "corregir". |
+| ¿Por qué no usaron un ORM? | Para que podamos explicar cada consulta y que el código sea legible. |
+| ¿Cómo se demuestra que los 24 endpoints funcionan? | Con `python tests/test_todos_los_endpoints.py`, que pasa 39 OK. |
+| ¿Qué hace el endpoint `/api/estadisticas`? | Devuelve un JSON que combina datos de los 3 motores en una sola respuesta. |
+| ¿Qué hace `/analiticas`? | Devuelve un panel HTML con gráficas, usando una agregación de MongoDB con `$facet`. |
 
 ---
 
 ## Parte VII — Declaración de uso de IA
 
-Para este proyecto se utilizó **Claude (Anthropic)** como herramienta de asistencia durante todo el desarrollo. Se empleó para:
-
-1. **Proponer la arquitectura general** (tres motores, repartidos por responsabilidades).
-2. **Explicar cómo se implementa el borrado lógico** en cada motor.
-3. **Generar el esqueleto del código** (el "molde" del recurso `usuarios.py`), a partir del cual el resto se copió y adaptó.
-4. **Guiar paso a paso los comandos** de Docker, pip, git y Python en PowerShell.
-5. **Redactar la documentación** (este manual, el README y la bitácora).
-
-Las decisiones de diseño (elección del tema, reparto entre integrantes, puertos distintos para no chocar con prácticas anteriores, decisión de no usar ORM) **se tomaron en acuerdo con el equipo**. Cada archivo entregado fue probado por los alumnos antes de hacer el commit. Los dos integrantes son responsables del contenido final y pueden explicar cada parte del proyecto. El profesor fue claro en clase: *"Pueden guiarse con la IA, no lo hagan todo con la IA"*, y por eso el código se mantuvo intencionalmente simple y los alumnos entienden cada línea.
-
----
+Para este proyecto se utilizó **Claude (Anthropic)** como herramienta de guía: para organizar la estructura, explicar cómo implementar el borrado lógico en cada motor, generar el esqueleto del código y redactar la documentación. Cada archivo fue probado por los alumnos antes del commit. Los dos integrantes son responsables del contenido final y pueden explicar cada parte del proyecto. El profesor fue claro en clase: *"Pueden guiarse con la IA, no lo hagan todo con la IA"*, y por eso el código se mantuvo intencionalmente simple y los alumnos entienden cada línea.
 
 ## Parte VIII — Referencias
 
-- **Clases del profesor Francisco Cervantes Zambrano**, Tópicos de Bases de Datos, Instituto Tecnológico de Colima, periodo agosto–diciembre 2026 (transcripciones del 6 de noviembre, planteamiento del proyecto T3-01).
-- [1] A. Ronacher, *Flask Documentation*, Pallets Projects. [En línea]. Disponible en: https://flask.palletsprojects.com/
-- [2] Oracle Corp., *MySQL 8.0 Reference Manual*. [En línea]. Disponible en: https://dev.mysql.com/doc/refman/8.0/en/
-- [3] MongoDB Inc., *MongoDB Manual*. [En línea]. Disponible en: https://www.mongodb.com/docs/manual/
-- [4] Redis Ltd., *Redis Documentation*. [En línea]. Disponible en: https://redis.io/docs/latest/
-- [5] Docker Inc., *Docker Compose Overview*. [En línea]. Disponible en: https://docs.docker.com/compose/
-- [6] R. T. Fielding, *Architectural Styles and the Design of Network-based Software Architectures*, tesis doctoral, Univ. of California Irvine, 2000. (origen del estilo REST).
-- [7] M. Massé, *REST API Design Rulebook*. O'Reilly Media, 2011. (buenas prácticas de diseño REST).
+- Clases del profesor Francisco Cervantes Zambrano, Tópicos de Bases de Datos, Instituto Tecnológico de Colima, periodo agosto–diciembre 2026.
+- A. Ronacher, *Flask Documentation*. https://flask.palletsprojects.com/
+- Oracle Corp., *MySQL 8.0 Reference Manual*. https://dev.mysql.com/doc/refman/8.0/en/
+- MongoDB Inc., *MongoDB Manual*. https://www.mongodb.com/docs/manual/
+- Redis Ltd., *Redis Documentation*. https://redis.io/docs/latest/
+- Docker Inc., *Docker Compose Overview*. https://docs.docker.com/compose/
+- R. T. Fielding, *Architectural Styles and the Design of Network-based Software Architectures*, tesis doctoral, Univ. of California Irvine, 2000 (origen del estilo REST).

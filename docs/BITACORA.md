@@ -2,47 +2,44 @@
 
 **Materia:** Tópicos de Bases de Datos (IFF-1026)
 **Profesor:** Francisco Cervantes Zambrano
-**Alumnos:** Ángel Salvador Álvarez Fernández (23460501), Elías Meléndez Guzmán
+**Alumnos:** Ángel Salvador Álvarez Fernández (23460501) · Elías Meléndez Guzmán
 **Periodo:** agosto–diciembre 2026
 
-Este documento registra paso a paso cómo se desarrolló el proyecto. Sirve como respaldo en caso de que el profesor pida sustentar lo hecho, y como manual del laboratorio.
-
----
+Este documento registra paso a paso cómo se desarrolló el proyecto.
 
 ## 1. Planteamiento
 
-El profesor pidió elaborar una aplicación multibase de datos que conecte con al menos **tres motores** (uno relacional, uno NoSQL y uno clave-valor), expuesta como un **Web Service** con los métodos GET, POST, PATCH y DELETE en **al menos seis recursos**. El **borrado debe ser lógico** (el registro no se elimina, solo se marca). La entrega es por **repositorio Git compartido** con README y commits de todos los integrantes.
+El profesor pidió elaborar una aplicación multibase de datos que conecte al menos **tres motores** (uno relacional, uno NoSQL y uno clave-valor), expuesta como un **Web Service** con los métodos GET, POST, PATCH y DELETE en **al menos seis recursos**. El **borrado debe ser lógico**. La entrega es por **repositorio Git compartido** con README y commits de los dos integrantes.
 
 ### Tema elegido
-Sistema de análisis de visitas web (un Google Analytics simplificado). Se eligió porque los tres motores tienen una responsabilidad natural y distinta:
-- **MySQL** guarda lo administrativo y estructurado (usuarios, sitios, páginas, objetivos).
-- **MongoDB** guarda los eventos de los visitantes (visitas, clics, scroll), cuyos atributos cambian según el tipo.
-- **Redis** mantiene las sesiones activas y contadores en vivo, donde interesa la velocidad por encima de la persistencia estricta.
+Sistema de análisis de visitas web (Google Analytics simplificado). Cada motor tiene una responsabilidad natural y distinta:
 
----
+- **MySQL** guarda lo administrativo y estructurado (usuarios, sitios, páginas, objetivos).
+- **MongoDB** guarda los eventos de los visitantes (visitas, clics), cuyos atributos cambian según el tipo.
+- **Redis** mantiene las sesiones activas y los contadores en vivo.
 
 ## 2. Arquitectura
 
+El sitio de prueba manda eventos al Web Service con `fetch`. El Web Service los reparte entre MySQL, MongoDB y Redis. El panel de analíticas los lee y los muestra en gráficas.
+
 ```
-+------------------+        +-------------------------+        +-----------+
-|  Sitio de prueba |  JSON  |   Web Service (Flask)   |        |  MySQL    |  <- usuarios, sitios,
-|  (HTML + JS)     | -----> |  app.py + /api/*        | -----> |           |     paginas, objetivos
-+------------------+        |  blueprints por recurso | -----> +-----------+
-                            |                         |        +-----------+
-                            |                         | -----> |  MongoDB  |  <- eventos
-                            |                         |        +-----------+
-                            |                         |        +-----------+
-                            |                         | -----> |   Redis   |  <- sesiones,
-                            +-------------------------+        +-----------+     contadores
+Navegador                       Flask (app.py)
+┌────────────────┐    JSON     ┌──────────────────────────┐
+│ sitio-prueba/  │  ────────►  │  /api/* (24 endpoints)   │
+│ tracker.js     │             │  /api/salud              │
+│ (visita, clic) │             │  /api/estadisticas/<id>  │
+└────────────────┘             │  /analiticas (panel)     │
+                               └──┬──────────┬──────────┬─┘
+                                  ▼          ▼          ▼
+                               MySQL     MongoDB     Redis
+                               :3307     :27018      :6380
 ```
 
-Los tres motores corren en **contenedores Docker**, orquestados con `docker-compose`. El Web Service está en Python + Flask (el mismo stack que el profesor usó en la clase de Docker del tema 1).
-
----
+Los tres motores corren en **contenedores Docker** orquestados con `docker-compose`. El Web Service está en Python + Flask.
 
 ## 3. Reparto de trabajo
 
-| Recurso | Motor | Responsable |
+| Recurso / aporte | Motor | Responsable |
 |---|---|---|
 | `usuarios` | MySQL | Ángel |
 | `sitios` | MySQL | Ángel |
@@ -50,59 +47,67 @@ Los tres motores corren en **contenedores Docker**, orquestados con `docker-comp
 | `paginas` | MySQL | Elías |
 | `objetivos` | MySQL | Elías |
 | `eventos` | MongoDB | Elías |
+| Esqueleto, docker-compose, suite de pruebas, `estadisticas`, bitácora | — | Ángel |
+| Panel `/analiticas` con gráficas, corrección de autenticación MySQL, redirect de `/` | — | Elías |
 
-Además, Ángel preparó el esqueleto del proyecto, `docker-compose.yml`, el sitio de prueba y el README. Elías preparará la colección de Postman y el panel simple.
+## 4. Borrado lógico en los 3 motores
 
----
-
-## 4. Diseño: el borrado lógico en los tres motores
-
-Es el único requisito del profesor que exige una solución distinta en cada motor:
+Es el requisito que exige una solución distinta en cada motor:
 
 - **MySQL:** se añade la columna `eliminado_en DATETIME NULL` en cada tabla. `DELETE` ejecuta `UPDATE ... SET eliminado_en = NOW()`. Los `GET` filtran con `WHERE eliminado_en IS NULL`.
 - **MongoDB:** cada documento lleva un campo `eliminado: false`. `DELETE` lo pone en `true`. Los `GET` filtran con `{eliminado: {$ne: true}}`.
-- **Redis:** cada sesión es un `HASH` con un campo `eliminado = 0`. `DELETE` lo cambia a `1` y hace `ZREM` del sorted set de sesiones activas. **Importante:** no se usa `EXPIRE`/TTL, porque si Redis vence el TTL eliminaría físicamente la sesión y rompería el requisito.
+- **Redis:** cada sesión es un `HASH` con un campo `eliminado = 0`. `DELETE` lo cambia a `1` y hace `ZREM` del sorted set de sesiones activas. **No se usa EXPIRE/TTL**, porque si Redis venciera el TTL eliminaría físicamente la sesión y rompería el requisito.
 
----
+## 5. Decisiones técnicas
 
-## 5. Decisiones técnicas registradas
-
-- **Puertos distintos en Docker (3307, 27018, 6380)** para no chocar con los contenedores de MySQL, MongoDB y Redis que ya existen de prácticas anteriores.
-- **Blueprints de Flask** (un archivo por recurso en `recursos/`) para que cada compañero trabaje su recurso sin tocar los demás y sin generar conflictos al hacer merge.
-- **PyMySQL en vez de mysql-connector** porque es más sencillo y suficiente para el proyecto.
-- **No se usa un ORM** (ni SQLAlchemy ni Mongoose) a propósito: el profesor advirtió que si ve código demasiado estructurado sabrá que no lo hicimos nosotros. Las consultas se escriben a mano para que podamos explicarlas.
-
----
+- **Puertos 3307, 27018, 6380** en Docker para no chocar con los contenedores de las prácticas pasadas.
+- **Blueprints de Flask**, un archivo por recurso, para que ambos integrantes trabajen en paralelo sin conflictos de merge.
+- **PyMySQL** en vez de mysql-connector, por simplicidad.
+- **Sin ORM** a propósito: el profesor advirtió que un código demasiado estructurado haría sospechar que no lo hicimos nosotros. Las consultas se escriben a mano para poder explicar cada línea.
 
 ## 6. Avances cronológicos
 
-### Sábado 15 de noviembre (día 1)
-- Se eligió el tema y se acordó por WhatsApp el reparto con Elías.
-- Ángel creó el esqueleto: `docker-compose.yml`, `schema.sql`, `db.py` con las tres conexiones, `app.py` con `/api/salud`, y el primer recurso `usuarios` como molde.
-- Se probó local: las tres bases respondieron `ok` en `/api/salud`. El CRUD completo de usuarios funcionó (POST, GET, PATCH, DELETE lógico).
-- Se añadieron los recursos `sitios` (MySQL) y `sesiones` (Redis).
-- Se creó el sitio de prueba (3 páginas HTML + `tracker.js`) que simula las visitas y clics.
-- Primer commit y push al repositorio `eliasMG2/T3-01-Proyecto-Multibase-de-datos`.
+### Sábado 15 de noviembre
+- Elección del tema y reparto con Elías por WhatsApp.
+- Esqueleto: `docker-compose.yml`, `schema.sql`, `db.py`, `app.py` con `/api/salud`, recurso `usuarios` como molde.
+- Recursos `sitios` y `sesiones`.
+- Sitio de prueba (3 páginas HTML + `tracker.js`) y `seed.py`.
+- Stubs de los recursos de Elías (`paginas.py`, `objetivos.py`, `eventos.py`) como punto de partida.
+- Suite de pruebas `test_todos_los_endpoints.py` y endpoint extra `/api/estadisticas`.
+- Primer push al repositorio con 4 commits.
 
-### Domingo 16 de noviembre (día 2) — pendiente
-- Elías: implementa `paginas`, `objetivos` y `eventos`.
-- Ángel: integra y prueba el sitio de prueba de punta a punta.
-- Reunión 12 pm: integración conjunta en llamada.
+### Domingo 16 de noviembre — reposo
+### Lunes 16 de noviembre — reposo
 
-### Lunes 17 de noviembre (día 3, entrega) — pendiente
-- Pruebas finales, README completo, colección Postman, tag `v1.0-entrega`.
+### Martes 17 de noviembre (día de entrega)
+- `git pull --rebase` para traer los cambios de Elías.
+- Elías subió su parte con un **Pull Request** (lo más profesional en GitHub):
+  - Corrección de autenticación MySQL.
+  - **Panel de analíticas en `/analiticas`** (`recursos/analiticas.py`, `templates/analiticas.html`, `sitio-prueba/analiticas.css`) con filtros por sitio, visitas, clics, sesiones, actividad diaria y páginas más vistas.
+  - Redirect desde `/` al sitio de prueba.
+  - Funciones auxiliares `sitios_registrados()` y `sesiones_registradas()` para reutilizar lógica entre recursos.
+- Verificación: suite de pruebas pasa **39 OK · 0 FAIL**.
+- Prueba desde cero clonando en `prueba-limpia`: **39 OK · 0 FAIL**. El proyecto es reproducible.
+- Limpieza de notas personales del repositorio.
+- Actualización de README, bitácora y manual de laboratorio.
+- Tag `v1.0-entrega` creado y empujado.
+- Entrega en Classroom antes de las 11:00.
 
----
+## 7. Resultado final
 
-## 7. Declaración de uso de IA
+El proyecto cumple y supera los requisitos:
 
-Para este proyecto se utilizó Claude (Anthropic) como herramienta de guía: para proponer la arquitectura, para explicar cómo se implementa el borrado lógico en cada motor, y para generar el esqueleto del código a partir del cual cada integrante del equipo escribió sus recursos. Cada archivo entregado fue revisado, probado y, cuando fue necesario, modificado por los alumnos; los dos integrantes son responsables del contenido final.
+| Requisito | Estado |
+|---|---|
+| 3 motores (relacional, NoSQL, clave-valor) | MySQL, MongoDB, Redis |
+| Web Service con GET/POST/PATCH/DELETE en los 6 recursos | 24 endpoints, los 39 casos pasan |
+| Borrado lógico en los 3 motores | Verificado con el test |
+| 6 recursos distintos | Sí (usuarios, sitios, páginas, objetivos, eventos, sesiones) |
+| Repositorio Git con commits de los dos integrantes | Sí (Ángel y Elías, incluye un Pull Request) |
+| README con instrucciones | Sí, actualizado |
 
-### Actualización — sábado 15, noche
+Extras entregados sobre lo pedido: endpoint `/api/estadisticas` que une las 3 bases, panel visual `/analiticas` con gráficas, sitio de prueba con tracker JavaScript, suite de pruebas automatizada, manual de laboratorio en PDF.
 
-Para asegurar que Elías no empiece de cero y pueda avanzar rápido mañana:
-- Se añadieron los stubs (archivos pre-hechos a partir del molde `usuarios.py`) de sus tres recursos: `paginas.py`, `objetivos.py` y `eventos.py` (este último en MongoDB con la restricción de PATCH solo a `etiquetas` y `revisado`).
-- Se actualizó `app.py` registrando los 6 blueprints.
-- Se añadió `PARA-ELIAS.md` con instrucciones de cómo clonar, arrancar, probar sus recursos y hacer sus propios aportes (colección Postman, endpoint de estadísticas).
+## 8. Declaración de uso de IA
 
-Con esto, al final del sábado el proyecto ya tiene **los 6 recursos funcionales**. Elías debe probarlos, personalizarlos y añadir sus aportes propios en su rama `elias-recursos`.
+Para este proyecto se utilizó **Claude (Anthropic)** como herramienta de guía: para proponer la arquitectura, para explicar cómo implementar el borrado lógico en cada motor, para generar el esqueleto del código y para redactar la documentación. Cada archivo fue probado por los alumnos antes de hacer commit. Los dos integrantes son responsables del contenido final y pueden explicar cada parte del proyecto.
