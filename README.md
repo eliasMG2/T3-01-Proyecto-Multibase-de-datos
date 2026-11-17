@@ -52,6 +52,12 @@ Debe responder `{"mongodb": "ok", "mysql": "ok", "redis": "ok"}`.
 
 > La primera vez MySQL tarda unos 20 segundos en arrancar. Si `/api/salud` marca error en mysql, espera un poco y recarga.
 
+## Probar la tienda
+
+Con Flask en ejecución, abre `http://localhost:5000/`. Si `/api/sitios` está vacío, ejecuta `python seed.py` en otra terminal con el mismo entorno virtual y recarga la página.
+
+Navega a Productos y pulsa **Agregar**. La página muestra los IDs de los eventos registrados. Puedes consultar los eventos en `/api/eventos` y las sesiones con su contador de páginas vistas en `/api/sesiones`.
+
 ## Recursos del Web Service
 
 Cada recurso tiene los cuatro métodos. El **DELETE es borrado lógico**: el registro no se elimina, solo se marca como borrado y deja de aparecer en los GET.

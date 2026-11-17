@@ -8,14 +8,15 @@ sitios_bp = Blueprint("sitios", __name__)
 CAMPOS_EDITABLES = ["nombre", "dominio"]
 
 
+def sitios_registrados():
+    with conectar_mysql() as con, con.cursor() as cur:
+        cur.execute("SELECT * FROM sitios WHERE eliminado_en IS NULL")
+        return cur.fetchall()
+
+
 @sitios_bp.get("/api/sitios")
 def listar_sitios():
-    con = conectar_mysql()
-    with con.cursor() as cur:
-        cur.execute("SELECT * FROM sitios WHERE eliminado_en IS NULL")
-        datos = cur.fetchall()
-    con.close()
-    return jsonify(datos)
+    return jsonify(sitios_registrados())
 
 
 @sitios_bp.get("/api/sitios/<int:id>")
