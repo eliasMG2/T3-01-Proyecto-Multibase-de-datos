@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analíticas web · Multibase</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='analiticas.css') }}">
+</head>
+<body>
+  <header class="barra">
+    <div class="contenedor barra-interior">
+      <a class="marca" href="{{ url_for('analiticas.panel') }}"><span class="simbolo" aria-hidden="true"></span> Multibase</a>
+      <a class="enlace" href="{{ url_for('inicio') }}">Ir a la tienda <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main class="contenedor">
+    <div class="cabecera">
+      <div>
+        <h1>Analíticas web</h1>
+        <p>Visitas, clics y sesiones de tus sitios.</p>
+      </div>
+      {% if not error %}
+      <form method="get" action="{{ url_for('analiticas.panel') }}" class="filtro">
+        <label for="sitio">Sitio</label>
+        <div class="controles">
+          <select id="sitio" name="sitio_id">
+            <option value="">Todos los sitios</option>
+            {% for sitio in sitios %}
+            <option value="{{ sitio.id }}"{% if sitio.id == sitio_id %} selected{% endif %}>{{ sitio.nombre }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit">Aplicar</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+
+    {% if error %}
+    <section class="tarjeta" role="alert">
+      <h2>Analíticas temporalmente indisponibles</h2>
+      <p>Revisa el estado de las bases antes de volver a cargar el panel.</p>
+      <a href="{{ url_for('salud') }}">Comprobar estado</a>
+    </section>
+    {% else %}
+    <section class="metricas" aria-label="Totales históricos">
+      <article class="tarjeta metrica visitas"><h2>Visitas</h2><strong>{{ visitas }}</strong><p>Cargas de página registradas</p></article>
+      <article class="tarjeta metrica clics"><h2>Clics</h2><strong>{{ clics }}</strong><p>Interacciones con enlaces y botones</p></article>
+      <article class="tarjeta metrica sesiones"><h2>Sesiones</h2><strong>{{ sesiones }}</strong><p>Sesiones registradas</p></article>
+    </section>
+
+    <div class="resumen">
+      <section class="tarjeta actividad">
+        <h2>Actividad diaria</h2>
+        <p>Últimos 7 días · UTC</p>
+        {% if maximo %}
+        <div class="leyenda"><span>Visitas</span><span>Clics</span></div>
+        <ol class="grafica" aria-label="Visitas y clics por día">
+          {% for dia in dias %}
+          <li class="dia">
+            <div class="par" aria-label="{{ dia.fecha }}: {{ dia.visitas }} visitas, {{ dia.clics }} clics">
+              <div class="columna visita" style="--altura: {{ dia.visitas * 100 / maximo }}%"><span>{{ dia.visitas }}</span></div>
+              <div class="columna clic" style="--altura: {{ dia.clics * 100 / maximo }}%"><span>{{ dia.clics }}</span></div>
+            </div>
+            <span>{{ dia.fecha }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="vacio">No hay visitas ni clics en este período.</p>
+        {% endif %}
+      </section>
+
+      <section class="tarjeta">
+        <h2>Páginas más vistas</h2>
+        <p>Total histórico por ruta</p>
+        {% if paginas %}
+        <ol class="paginas">
+          {% for pagina in paginas %}
+          <li><span>{{ pagina._id }}</span><strong>{{ pagina.total }}</strong><div class="medidor" aria-hidden="true"><div style="width: {{ pagina.total * 100 / paginas[0].total }}%"></div></div></li>
+          {% endfor %}
+        </ol>
+        {% else %}
+        <p class="vacio">Todavía no hay visitas con una ruta registrada.</p>
+        {% endif %}
+      </section>
+    </div>
+
+    <section class="tarjeta eventos">
+      <h2>Eventos recientes</h2>
+      {% if recientes %}
+      <div class="tabla" tabindex="0" role="region" aria-label="Tabla de eventos recientes">
+        <table>
+          <thead><tr><th scope="col">Evento</th><th scope="col">Página</th><th scope="col">Sitio</th><th scope="col">Fecha y hora (UTC)</th></tr></thead>
+          <tbody>
+            {% for evento in recientes %}
+            <tr>
+              <td><span class="tipo{% if evento.tipo == 'visita' %} visita{% elif evento.tipo == 'clic' %} clic{% endif %}">{{ evento.tipo|default('—', true)|capitalize }}</span></td>
+              <td>{{ evento.ruta|default('—', true) }}</td><td>{{ evento.sitio }}</td><td>{{ evento.hora }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="vacio">Los eventos aparecerán aquí cuando alguien visite la tienda o haga clic.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

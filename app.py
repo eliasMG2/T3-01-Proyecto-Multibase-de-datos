@@ -1,6 +1,7 @@
 # Web Service multibase: analisis de visitas web
-from flask import Flask, jsonify
+from flask import Flask, jsonify, redirect, url_for
 from db import conectar_mysql, cliente_mongo, r
+from recursos.analiticas import analiticas_bp
 
 # Los 6 recursos del proyecto
 from recursos.usuarios import usuarios_bp      # MySQL - Angel
@@ -10,8 +11,9 @@ from recursos.paginas import paginas_bp        # MySQL - Elias
 from recursos.objetivos import objetivos_bp    # MySQL - Elias
 from recursos.eventos import eventos_bp        # MongoDB - Elias
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="sitio-prueba")
 app.json.ensure_ascii = False
+app.register_blueprint(analiticas_bp)
 
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(sitios_bp)
@@ -19,6 +21,11 @@ app.register_blueprint(sesiones_bp)
 app.register_blueprint(paginas_bp)
 app.register_blueprint(objetivos_bp)
 app.register_blueprint(eventos_bp)
+
+
+@app.get("/")
+def inicio():
+    return redirect(url_for("static", filename="index.html"))
 
 
 @app.get("/api/salud")

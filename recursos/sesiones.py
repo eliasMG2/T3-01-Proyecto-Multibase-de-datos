@@ -28,19 +28,20 @@ def _sesion_a_dict(datos):
     }
 
 
-@sesiones_bp.get("/api/sesiones")
-def listar_sesiones():
-    """Lista todas las sesiones no borradas. ?sitio_id=1 filtra por sitio."""
-    sitio_id = request.args.get("sitio_id")
-    resultado = []
+def sesiones_registradas(sitio_id=None):
     for clave in r.scan_iter("sesion:*"):
         datos = r.hgetall(clave)
-        if datos.get("eliminado") == "1":
+        if not datos or datos.get("eliminado") == "1":
             continue
         if sitio_id and datos.get("sitio_id") != sitio_id:
             continue
-        resultado.append(_sesion_a_dict(datos))
-    return jsonify(resultado)
+        yield _sesion_a_dict(datos)
+
+
+@sesiones_bp.get("/api/sesiones")
+def listar_sesiones():
+    """Lista todas las sesiones no borradas. ?sitio_id=1 filtra por sitio."""
+    return jsonify(list(sesiones_registradas(request.args.get("sitio_id"))))
 
 
 @sesiones_bp.get("/api/sesiones/<id>")

@@ -1,75 +1,99 @@
-// Tracker: el "espia" que vive en la pagina y manda lo que hace el visitante a la API.
-// Se ejecuta en cada pagina y hace 3 cosas:
-//   1. Si no hay sesion abierta, crea una (POST /api/sesiones)
-//   2. Registra la visita a la pagina (POST /api/eventos)   <-- este lo hace Elias
-//   3. Registra cada clic en un boton    (POST /api/eventos)   <-- este lo hace Elias
-const API = "http://localhost:5000";
-const SITIO_ID = 1;   // debes crear el sitio con id=1 antes de probar
-
-// visitante_id: lo guardamos en el navegador para que persista entre paginas
+const API = "/api";
 let visitanteId = localStorage.getItem("visitante_id");
 if (!visitanteId) {
-  visitanteId = "v-" + Math.random().toString(36).slice(2, 10);
+  visitanteId = "v-" + Math.random().toString(36).slice(2);
   localStorage.setItem("visitante_id", visitanteId);
 }
 
-// sesion_id: dura mientras la pestana no se cierre (sessionStorage)
+async function solicitar(ruta, metodo = "GET", datos) {
+  const opciones = {method: metodo};
+  if (datos !== undefined) {
+    opciones.headers = {"Content-Type": "application/json"};
+    opciones.body = JSON.stringify(datos);
+  }
+  const respuesta = await fetch(API + ruta, opciones);
+  if (!respuesta.ok) {
+    const detalle = await respuesta.json().catch(() => ({}));
+    throw new Error(detalle.error || `${metodo} ${ruta}: HTTP ${respuesta.status}`);
+  }
+  return respuesta.json();
+}
+
 async function asegurarSesion() {
-  let sid = sessionStorage.getItem("sesion_id");
-  if (sid) return sid;
-  const resp = await fetch(API + "/api/sesiones", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({sitio_id: SITIO_ID, visitante_id: visitanteId})
+  const sitios = await solicitar("/sitios");
+  const sitio = sitios.find(({dominio}) => dominio === "mitienda.com") || sitios[0];
+  if (!sitio) {
+    throw new Error("Crea un sitio de prueba con seed.py y recarga la página.");
+  }
+
+  const sitioId = sitio.id;
+  const clave = `sesion_id:${sitioId}`;
+  const idGuardado = sessionStorage.getItem(clave);
+  if (idGuardado) {
+    const respuesta = await fetch(`${API}/sesiones/${idGuardado}`);
+    if (respuesta.ok) return {sitioId, id: idGuardado, nueva: false};
+    if (respuesta.status !== 404) {
+      throw new Error(`No se pudo recuperar la sesión: HTTP ${respuesta.status}`);
+    }
+  }
+
+  const {id} = await solicitar("/sesiones", "POST", {
+    sitio_id: sitioId,
+    visitante_id: visitanteId
   });
-  const data = await resp.json();
-  sid = data.id;
-  sessionStorage.setItem("sesion_id", sid);
-  return sid;
+  sessionStorage.setItem(clave, id);
+  return {sitioId, id, nueva: true};
 }
 
 function log(texto) {
-  const div = document.getElementById("log");
-  if (div) div.innerHTML += texto + "<br>";
-  console.log(texto);
+  const registro = document.getElementById("log");
+  if (registro) {
+    const linea = document.createElement("div");
+    linea.textContent = texto;
+    registro.append(linea);
+  }
 }
 
-// Manda evento al API (visita o clic). El endpoint /api/eventos lo hace Elias.
-async function mandarEvento(tipo, extra = {}) {
-  const sesionId = await asegurarSesion();
-  const evento = {
-    sitio_id: SITIO_ID,
-    sesion_id: sesionId,
-    visitante_id: visitanteId,
-    tipo: tipo,
-    ruta: window.location.pathname.split("/").pop() || "index",
-    ...extra
-  };
+async function registrarEvento(tipo, datos) {
   try {
-    await fetch(API + "/api/eventos", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify(evento)
-    });
-    log("[" + new Date().toLocaleTimeString() + "] " + tipo + " -> " + JSON.stringify(evento));
-  } catch (e) {
-    log("[error] no se pudo mandar (¿Flask corriendo? ¿Elias ya hizo /api/eventos?): " + e);
+    const sesion = await sesionActual;
+    const evento = {
+      sitio_id: sesion.sitioId,
+      sesion_id: sesion.id,
+      visitante_id: visitanteId,
+      tipo,
+      ruta: window.location.pathname.split("/").pop(),
+      datos
+    };
+    const {id} = await solicitar("/eventos", "POST", evento);
+    log(`${tipo} registrado: ${id}`);
+
+    // Redis cuenta la primera página al crear la sesión.
+    if (tipo === "clic" || !sesion.nueva) {
+      const cambios = tipo === "visita" ? {suma_pagina: true} : {};
+      await solicitar(`/sesiones/${sesion.id}`, "PATCH", cambios);
+    }
+  } catch (error) {
+    log(error.message);
   }
-  // Actualizamos la sesion: renueva ultima_actividad
-  fetch(API + "/api/sesiones/" + sesionId, {
-    method: "PATCH",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({suma_pagina: true})
-  });
 }
 
-// === cuando la pagina carga: evento "visita" ===
-window.addEventListener("load", () => mandarEvento("visita"));
+const sesionActual = asegurarSesion();
+const visitaInicial = registrarEvento("visita");
 
-// === cada clic en un boton o un link: evento "clic" ===
-document.addEventListener("click", (e) => {
-  const el = e.target;
-  if (el.tagName === "BUTTON" || el.tagName === "A") {
-    mandarEvento("clic", {datos: {texto: el.innerText, selector: el.id || el.className || el.tagName}});
-  }
+document.addEventListener("click", async (evento) => {
+  const elemento = evento.target.closest("button, a");
+  if (!elemento || elemento.hasAttribute("data-ignorar-analiticas")) return;
+
+  const enlaceInterno = elemento.tagName === "A" && elemento.origin === location.origin;
+  const navegar = enlaceInterno && !evento.defaultPrevented && !elemento.target &&
+    !evento.ctrlKey && !evento.metaKey && !evento.shiftKey && !evento.altKey;
+  if (navegar) evento.preventDefault();
+
+  await visitaInicial;
+  await registrarEvento("clic", {
+    texto: elemento.innerText,
+    selector: elemento.id || elemento.className || elemento.tagName
+  });
+  if (navegar) location.assign(elemento.href);
 });
