@@ -1,0 +1,65 @@
+<section class="bitacora" id="bitacora" aria-labelledby="titulo-bitacora">
+  <h2 id="titulo-bitacora">Bitácora de datos</h2>
+  <p>Hasta ocho registros recientes por base de datos.</p>
+  {% set mensaje_vacio = 'Datos temporalmente indisponibles.' if error else 'Todavía no hay registros para mostrar.' %}
+
+  <article class="tarjeta base base-mysql">
+    <h3 id="titulo-mysql">MySQL</h3>
+    <p>Usuarios, sitios registrados, páginas y objetivos de seguimiento.</p>
+    <div class="tabla" tabindex="0" role="region" aria-labelledby="titulo-mysql">
+      <table aria-labelledby="titulo-mysql">
+        <thead><tr><th scope="col">Tipo</th><th scope="col">Registro</th><th scope="col">Detalle</th></tr></thead>
+        <tbody>
+          {% for registro in registros_mysql %}
+          <tr><td>{{ registro.tipo }}</td><td>{{ registro.nombre }}</td><td>{{ registro.detalle or '—' }}</td></tr>
+          {% else %}
+          <tr><td colspan="3">{{ mensaje_vacio }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="tarjeta base base-mongodb">
+    <h3 id="titulo-mongodb">MongoDB</h3>
+    <p>Visitas y clics registrados como eventos individuales.</p>
+    <div class="tabla" tabindex="0" role="region" aria-labelledby="titulo-mongodb">
+      <table aria-labelledby="titulo-mongodb">
+        <thead><tr><th scope="col">Evento</th><th scope="col">Página</th><th scope="col">Sitio</th><th scope="col">Texto del clic</th><th scope="col">Fecha y hora (UTC)</th></tr></thead>
+        <tbody>
+          {% for evento in recientes %}
+          <tr>
+            <td><span class="tipo{% if evento.tipo == 'visita' %} visita{% elif evento.tipo == 'clic' %} clic{% endif %}">{{ evento.tipo|default('—', true)|capitalize }}</span></td>
+            <td>{{ evento.ruta|default('—', true) }}</td>
+            <td>{{ evento.sitio }}</td>
+            <td>{{ evento.get('datos', {}).get('texto')|default('—', true) if evento.get('datos') is mapping else '—' }}</td>
+            <td class="fecha">{{ evento.hora }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">{{ mensaje_vacio }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="tarjeta base base-redis">
+    <h3 id="titulo-redis">Redis</h3>
+    <p>Sesiones ordenadas por su última actividad.</p>
+    <div class="tabla" tabindex="0" role="region" aria-labelledby="titulo-redis">
+      <table aria-labelledby="titulo-redis">
+        <thead><tr><th scope="col">Visitante</th><th scope="col">Sitio</th><th scope="col">Estado</th><th scope="col">Páginas vistas</th><th scope="col">Última actividad (UTC)</th></tr></thead>
+        <tbody>
+          {% for sesion in sesiones_recientes %}
+          <tr>
+            <td>{{ sesion.visitante_id or '—' }}</td><td>{{ sesion.sitio }}</td><td>{{ sesion.estado or '—' }}</td>
+            <td>{{ sesion.paginas_vistas }}</td><td class="fecha">{{ sesion.hora }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">{{ mensaje_vacio }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

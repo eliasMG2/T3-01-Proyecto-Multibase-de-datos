@@ -20,6 +20,7 @@ p { color: var(--suave); line-height: 1.5; }
 .contenedor { width: min(100% - 3rem, 1170px); margin-inline: auto; }
 .barra { background: #102d28; color: white; }
 .barra-interior { display: flex; justify-content: space-between; align-items: center; min-height: 64px; gap: 1rem; }
+.barra-enlaces { display: flex; flex-wrap: wrap; justify-content: end; column-gap: 1rem; row-gap: .35rem; }
 .marca, .enlace { text-decoration: none; }
 .marca { display: flex; align-items: center; gap: .75rem; font-weight: 750; letter-spacing: -.02em; }
 .enlace { color: #c5e5db; font-size: .9rem; }
@@ -65,12 +66,21 @@ button:hover { background: #055748; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: .89rem; }
 th, td { padding: .75rem .65rem; border-bottom: 1px solid var(--linea); overflow-wrap: anywhere; }
 th { color: var(--suave); font-size: .78rem; }
-td:last-child { white-space: nowrap; }
+.fecha { white-space: nowrap; }
 tbody tr:last-child td { border: 0; }
 .tipo { display: inline-block; padding: .2rem .55rem; border-radius: .35rem; background: #edf0f0; }
 .tipo.visita { color: #005746; background: #dbf3e9; }
 .tipo.clic { color: #2f477f; background: #e8edfe; }
 .vacio { padding-block: 1.25rem .25rem; }
+
+.bitacora { scroll-margin-top: 1rem; margin-bottom: 1.5rem; }
+.bitacora > h2 { margin-bottom: .3rem; }
+.base { border-left: 4px solid var(--base-color); margin-top: .85rem; }
+.base-mysql { --base-color: var(--azul); }
+.base-mongodb { --base-color: var(--verde); }
+.base-redis { --base-color: var(--violeta); }
+.base h3 { margin: 0 0 .25rem; font-size: 1.05rem; color: var(--base-color); }
+.base thead { background: var(--fondo); }
 
 @media (max-width: 720px) {
   .contenedor { width: calc(100% - 2rem); }
