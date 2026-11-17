@@ -8,7 +8,8 @@ from recursos.sitios import sitios_bp          # MySQL - Angel
 from recursos.sesiones import sesiones_bp      # Redis - Angel
 from recursos.paginas import paginas_bp        # MySQL - Elias
 from recursos.objetivos import objetivos_bp    # MySQL - Elias
-from recursos.eventos import eventos_bp        # MongoDB - Elias
+from recursos.eventos import eventos_bp
+from recursos.estadisticas import estadisticas_bp   # endpoint extra que une las 3 bases (Elias)        # MongoDB - Elias
 
 app = Flask(__name__)
 app.json.ensure_ascii = False
@@ -19,6 +20,7 @@ app.register_blueprint(sesiones_bp)
 app.register_blueprint(paginas_bp)
 app.register_blueprint(objetivos_bp)
 app.register_blueprint(eventos_bp)
+app.register_blueprint(estadisticas_bp)
 
 
 @app.get("/api/salud")
