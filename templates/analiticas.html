@@ -10,7 +10,10 @@
   <header class="barra">
     <div class="contenedor barra-interior">
       <a class="marca" href="{{ url_for('analiticas.panel') }}"><span class="simbolo" aria-hidden="true"></span> Multibase</a>
-      <a class="enlace" href="{{ url_for('inicio') }}">Ir a la tienda <span aria-hidden="true">↗</span></a>
+      <nav class="barra-enlaces" aria-label="Navegación del panel">
+        <a class="enlace" href="#bitacora">Bitácora de datos</a>
+        <a class="enlace" href="{{ url_for('inicio') }}">Ir a la tienda <span aria-hidden="true">↗</span></a>
+      </nav>
     </div>
   </header>
 
@@ -35,6 +38,8 @@
       </form>
       {% endif %}
     </div>
+
+    {% include "bitacora.html" %}
 
     {% if error %}
     <section class="tarjeta" role="alert">
@@ -86,27 +91,8 @@
       </section>
     </div>
 
-    <section class="tarjeta eventos">
-      <h2>Eventos recientes</h2>
-      {% if recientes %}
-      <div class="tabla" tabindex="0" role="region" aria-label="Tabla de eventos recientes">
-        <table>
-          <thead><tr><th scope="col">Evento</th><th scope="col">Página</th><th scope="col">Sitio</th><th scope="col">Fecha y hora (UTC)</th></tr></thead>
-          <tbody>
-            {% for evento in recientes %}
-            <tr>
-              <td><span class="tipo{% if evento.tipo == 'visita' %} visita{% elif evento.tipo == 'clic' %} clic{% endif %}">{{ evento.tipo|default('—', true)|capitalize }}</span></td>
-              <td>{{ evento.ruta|default('—', true) }}</td><td>{{ evento.sitio }}</td><td>{{ evento.hora }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="vacio">Los eventos aparecerán aquí cuando alguien visite la tienda o haga clic.</p>
-      {% endif %}
-    </section>
     {% endif %}
+
   </main>
 </body>
 </html>
